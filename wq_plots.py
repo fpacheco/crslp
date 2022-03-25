@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 
 import datetime
 import random
-from config import WQ_STAT, FLOW_STAT
+import os
+import config
 
 
 # PLOT STYLES
@@ -17,6 +18,77 @@ plt.style.use('ggplot')
 #plt.style.use('fivethirtyeight')
 #plt.style.use('seaborn-dark')
 #plt.style.use('bmh')
+
+
+def read_excel_flow(file_path):
+    df = pd.read_excel (file_path)
+    df['dt'] = pd.to_datetime(df['Fecha'])
+    df['temp'] = df['Valor'].str.replace(',', '.')
+    df['flow'] = pd.to_numeric(df['temp'])
+    # Drop not necessary columns
+    df = df.drop(
+        columns=['Fecha', 'Valor', 'Índice de calidad', 'Índice de revisión', 'temp']
+    )
+    return df
+
+
+def plot_flow(df, st):
+    plot = df.plot(x="dt", y=["flow"], grid=True, title=st)
+    plot.xaxis.set_label_text('Date')
+    plot.yaxis.set_label_text('Flow (m3/s)')
+    return plot
+
+
+# Florida
+plots = dict()
+st = 'Florida'
+df_flo = read_excel_flow(
+    os.path.join(config.DATA_PATH, config.FLOW_STAT[st][-1])
+)
+plots[st] = plot_flow(df_flo, st)
+
+# Paso Pache
+st = 'Paso_Pache'
+df_pp = read_excel_flow(
+    os.path.join(config.DATA_PATH, config.FLOW_STAT[st][-1])
+)
+plots[st] = plot_flow(df_pp, st)
+
+# Picada Varela
+st = 'Picada_de_Varela'
+df_pv = read_excel_flow(
+    os.path.join(config.DATA_PATH, config.FLOW_STAT[st][-1])
+)
+plots[st] = plot_flow(df_pv, st)
+
+# Santa Lucía
+st = 'Santa_Lucia'
+df_sl = read_excel_flow(
+    os.path.join(config.DATA_PATH, config.FLOW_STAT[st][-1])
+)
+plots[st] = plot_flow(df_sl, st)
+
+fig, axs = plt.subplots(4, sharex=True, sharey=True)
+fig.set_size_inches(config.FIG_SIZE)
+fig.set_dpi(config.FIG_DPI)
+
+names = ['Florida', 'Paso_Pache', 'Picada_de_Varela', 'Santa_Lucia']
+for n in range(0,4):
+    axs[n] = plots[names[n]]
+# hide
+for ax in axs:
+    ax.label_outer()
+plt.show()
+
+
+
+
+
+
+
+
+
+
 
 def simiq(x, coef=0.9):
     if isinstance(x, str):
