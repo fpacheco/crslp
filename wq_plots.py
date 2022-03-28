@@ -1,11 +1,14 @@
 from __future__ import print_function
 import pandas as pd
-from pandas_ods_reader import read_ods
+# from pandas_ods_reader import read_ods
 
 import numpy as np
 import matplotlib.cbook as cbook
 import matplotlib.image as image
 import matplotlib.pyplot as plt
+from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
+                               AutoMinorLocator)
+import matplotlib.dates as mdates
 
 import datetime
 import random
@@ -20,11 +23,14 @@ plt.style.use('ggplot')
 #plt.style.use('bmh')
 
 
-def read_excel_flow(file_path):
+def read_excel_flow(file_path, warea):
     df = pd.read_excel (file_path)
     df['dt'] = pd.to_datetime(df['Fecha'])
+    df['da'] = df['dt'].dt.date
     df['temp'] = df['Valor'].str.replace(',', '.')
     df['flow'] = pd.to_numeric(df['temp'])
+    # L/s/km2
+    df['sflow'] = df['flow'] / warea * 1000
     # Drop not necessary columns
     df = df.drop(
         columns=['Fecha', 'Valor', 'Índice de calidad', 'Índice de revisión', 'temp']
@@ -32,53 +38,176 @@ def read_excel_flow(file_path):
     return df
 
 
-def plot_flow(df, st):
-    plot = df.plot(x="dt", y=["flow"], grid=True, title=st)
+def plot_flow(df, st, ax):
+    plot = df.plot(x="dt", y=["flow"], grid=True, title=st, ax=ax)
     plot.xaxis.set_label_text('Date')
     plot.yaxis.set_label_text('Flow (m3/s)')
     return plot
 
 
-# Florida
+# Dataframes
+dfs = dict()
+# Plots
 plots = dict()
-st = 'Florida'
-df_flo = read_excel_flow(
-    os.path.join(config.DATA_PATH, config.FLOW_STAT[st][-1])
-)
-plots[st] = plot_flow(df_flo, st)
 
-# Paso Pache
-st = 'Paso_Pache'
-df_pp = read_excel_flow(
-    os.path.join(config.DATA_PATH, config.FLOW_STAT[st][-1])
-)
-plots[st] = plot_flow(df_pp, st)
+####################################################
+# To read 
+rnames = ['Florida', 'Paso_Pache', 'Picada_de_Varela', 'Santa_Lucia']
+for n in range(0,len(rnames)):
+    st = rnames[n]
+    dfs[st] = read_excel_flow(
+        os.path.join(config.DATA_PATH, config.FLOW_STAT[st][-1]),
+        config.FLOW_STAT[st][1]
+    )
+####################################################
 
-# Picada Varela
-st = 'Picada_de_Varela'
-df_pv = read_excel_flow(
-    os.path.join(config.DATA_PATH, config.FLOW_STAT[st][-1])
-)
-plots[st] = plot_flow(df_pv, st)
-
-# Santa Lucía
-st = 'Santa_Lucia'
-df_sl = read_excel_flow(
-    os.path.join(config.DATA_PATH, config.FLOW_STAT[st][-1])
-)
-plots[st] = plot_flow(df_sl, st)
-
-fig, axs = plt.subplots(4, sharex=True, sharey=True)
+####################################################
+# Basic general plot
+fig, axs = plt.subplots(4, 1, sharex=True, sharey=True)
 fig.set_size_inches(config.FIG_SIZE)
 fig.set_dpi(config.FIG_DPI)
-
-names = ['Florida', 'Paso_Pache', 'Picada_de_Varela', 'Santa_Lucia']
-for n in range(0,4):
-    axs[n] = plots[names[n]]
+# To plot
+pnames = ['Florida', 'Santa_Lucia', 'Paso_Pache', 'Picada_de_Varela']
+for n in range(0,len(pnames)):
+    st = pnames[n]
+    plots[st] = plot_flow(dfs[st], st, ax=axs[n])
 # hide
 for ax in axs:
     ax.label_outer()
-plt.show()
+plt.tight_layout()
+plt.savefig('/tmp/{}_flows.pdf'.format(
+        datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    )
+)
+plt.close(fig)
+####################################################
+
+####################################################
+# Specific flow plot
+fig, axs = plt.subplots(1, 1, sharex=True, sharey=True)
+fig.set_size_inches(config.FIG_SIZE)
+fig.set_dpi(config.FIG_DPI)
+# To plot
+pnames = ['Florida', 'Santa_Lucia', 'Paso_Pache', 'Picada_de_Varela']
+for n in range(0,len(pnames)):
+    st = pnames[n]
+    plot = dfs[st].plot(x="dt", y=["sflow"], grid=True, ax=axs)
+plot.xaxis.set_label_text('Date')
+plot.yaxis.set_label_text('SFlow (L/s/km2)')
+plt.tight_layout()
+plt.savefig('/tmp/{}_sflows.pdf'.format(
+        datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    )
+)
+plt.close(fig)
+####################################################
+
+####################################################
+# Quantiles
+dfq = dict()
+tl = range(0,101)
+ql = [x / 100 for x in tl]
+qnames = ['Florida', 'Santa_Lucia', 'Paso_Pache', 'Picada_de_Varela']
+for n in range(0,len(qnames)):
+    st = qnames[n]
+    dfq[st] = dfs[st].quantile(ql)
+    dfq[st] = dfq[st].rename_axis('q').reset_index()
+    dfq[st]['p'] = (1 - dfq[st]['q'])*100
+
+fig, axs = plt.subplots(1, 1, sharex=True, sharey=True)
+fig.set_size_inches(config.FIG_XXLSIZE)
+fig.set_dpi(config.FIG_DPI)
+# To plot
+pnames = ['Florida', 'Santa_Lucia', 'Paso_Pache', 'Picada_de_Varela']
+for n in range(0,len(pnames)):
+    st = pnames[n]
+    plot = dfq[st].plot(x="p", y=["sflow"], label=[st], grid=True, ax=axs, logy=True)
+plot.xaxis.set_label_text('Probability (%)')
+plot.yaxis.set_label_text('SFlow (L/s/km2)')
+
+axs.xaxis.set_major_locator(MultipleLocator(10))
+axs.xaxis.set_minor_locator(MultipleLocator(1))
+axs.set_xlim([0,100])
+
+plt.tight_layout()
+plt.savefig('/tmp/{}_pcurves.pdf'.format(
+        datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    )
+)
+plt.close(fig)
+####################################################
+
+####################################################
+# WD data
+dfwq = pd.read_csv("data/wq_santa_lucia.csv")
+dfwq['dt'] = pd.to_datetime(dfwq['Fecha'])
+dfwq['da'] = dfwq['dt'].dt.date
+
+# Sorted unique names
+snames = dfwq['Estación'].unique().sort()
+
+# New data
+dfwq['NT'] = dfwq['Nitrógeno total (mg N/L)']
+dfwq['PT'] = pd.to_numeric(dfwq['Fósforo total (µg P/L)'], errors='coerce')/1000
+dfwq['NT_D_PT'] = dfwq['NT']/dfwq['PT']
+
+# RSJ
+lst = ["SJ01", "SJ02", "SJ03", "SJ04", "SJ05", "SJ06"]
+dfwqRSJ = dfwq.query("Estación in @lst")
+dfwqRSJ = pd.merge(dfwqRSJ, dfs['Picada_de_Varela'], how="left", on="da")
+fdates = dfwq['da'].unique()
+fdlist = list(fdates)
+
+# Find min and max
+dtmin = dfwqRSJ['dt'].min()
+dtmax = dfwqRSJ['dt'].max()
+# Filter flows
+temp = dfs['Picada_de_Varela']
+fflows = temp[temp['dt'].ge(dtmin) & temp['dt'].le(dtmax)] 
+# fflows = temp.query("da in @fdlist")
+
+# Reindex
+dfwqRSJ.set_index('dt', inplace=True)
+
+fig, axs = plt.subplots(4, 1, sharex=True, sharey=False)
+fig.set_size_inches(config.FIG_XXLSIZE)
+fig.set_dpi(config.FIG_DPI)
+fflows.plot(x = 'dt', y = 'sflow', title='SFlow', legend=True, grid=True, logy=True, ax=axs[0])
+dfwqRSJ.groupby('Estación')['NT'].plot(title='NT', legend=True, grid=True, logy=True, ax=axs[1])
+dfwqRSJ.groupby('Estación')['PT'].plot(title='PT', legend=True, grid=True, logy=True, ax=axs[2])
+dfwqRSJ.groupby('Estación')['NT_D_PT'].plot(title='NT/PT', legend=True, grid=True, logy=True, ax=axs[3])
+
+axs[3].xaxis.set_major_locator(mdates.MonthLocator(bymonth=(2, 4, 6, 8, 10, 12)))
+axs[3].xaxis.set_minor_locator(mdates.MonthLocator())
+#axs.xaxis.set_major_locator(MultipleLocator(120))
+#axs.xaxis.set_minor_locator(MultipleLocator(30))
+
+# plt.show()
+plt.tight_layout()
+plt.savefig('/tmp/{}_RSJ_NP.pdf'.format(
+        datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    )
+)
+plt.close(fig)
+
+fig, axs = plt.subplots(3, 2, sharex=True, sharey=True)
+fig.set_size_inches(config.FIG_XXLSIZE)
+fig.set_dpi(config.FIG_DPI)
+pst = ["SJ01", "SJ02", "SJ03", "SJ04", "SJ05", "SJ06"]
+for n in range(0,len(pst)):
+    st = pst[n]
+    dftemp = dfwqRSJ.query("Estación == @st")
+    dftemp.plot.scatter(
+        x='sflow', y='NT', title = st,
+        ax=axs[n], legend=True, grid=True, logy=False
+    )
+# plt.show()
+plt.tight_layout()
+plt.savefig('/tmp/{}_RSJ_NTF.pdf'.format(
+        datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    )
+)
+plt.close(fig)
 
 
 
@@ -88,6 +217,17 @@ plt.show()
 
 
 
+
+
+
+"""
+pd.pivot_table(
+    dfwqRSJ.reset_index(),
+    index='dt', 
+    columns='Estación', 
+    values='NT_D_PT'
+).plot(subplots=True, layout=(2, 3))
+"""
 
 
 def simiq(x, coef=0.9):
