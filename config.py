@@ -33,6 +33,10 @@ FLOW_STAT = {
     'Picada_de_Varela': [19.79, 2346.00, -999.99, 'Río San José', 'flow_Picada_de_Varela.xls'],
 }
 
+CLIMATIC_STAT = {
+    'Las_Brujas': [44.34, 1747.60, -999.99, 'Las Brujas', 'climatic_Las_Brujas.xls']
+}
+
 # Plot text
 PLOT_TEXT = [
     ('Descarga de Conaprole', 48408),
