@@ -38,7 +38,7 @@ def read_excel_climatic(file_path):
 
 def read_excel_flow(file_path, warea):
     df = pd.read_excel (file_path)
-    df['dt'] = pd.to_datetime(df['Fecha'])
+    df['dt'] = pd.to_datetime(df['Fecha'], dayfirst=True)
     df['da'] = df['dt'].dt.date
     df['temp'] = df['Valor'].str.replace(',', '.')
     df['flow'] = pd.to_numeric(df['temp'])
@@ -217,6 +217,8 @@ fflows = temp[temp['dt'].ge(dtmin) & temp['dt'].le(dtmax)]
 # Filter rain
 ttemp = dcs['Las_Brujas']
 rrains = ttemp[ttemp['dt'].ge(dtmin) & ttemp['dt'].le(dtmax) & ttemp['rain'].gt(0)]
+# Order
+rrains = rrains.sort_values(by="dt")
 
 # Reindex
 dfwqRSJ.set_index('dt', inplace=True)
@@ -227,7 +229,7 @@ fig, axs = plt.subplots(5, 1, sharex=True, sharey=False)
 fig.set_size_inches(config.FIG_XXLSIZE)
 fig.set_dpi(config.FIG_DPI)
 
-rrains.plot.scatter(x = 'dt', y = 'rain', title='Rain (Las Brujas)', ylabel='Rain (mm)', legend=True, logy=False, ax=axs[0])
+rrains.plot.scatter(x = 'dt', y = 'rain', title='Rain (Las Brujas)', ylabel='Rain (mm)', legend=True, logy=True, ax=axs[0])
 # rrains.plot(x = 'dt', y = 'rain', title='Rain', kind='bar', legend=True, logy=False, ax=axs[0])
 
 fflows.plot(x = 'dt', y = 'flow', title='Flow', legend=True, grid=True, logy=True, ax=axs[1])
