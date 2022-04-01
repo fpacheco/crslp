@@ -205,10 +205,17 @@ dfwq['CF'] = pd.to_numeric(
     dfwq['Coliformes Termotolerantes (Fecales) (Membrana Filtrante) (ufc/100ml)'],
     errors='coerce'
 )
-dfwq['NT'] = dfwq['Nitrógeno total (mg N/L)']
+
 dfwq['PT'] = pd.to_numeric(dfwq['Fósforo total (µg P/L)'], errors='coerce')/1000
 dfwq['PO4'] = pd.to_numeric(dfwq['Fosfato (ortofosfato) (µg PO4-P/L)'], errors='coerce')/1000
+
+dfwq['NT'] = dfwq['Nitrógeno total (mg N/L)']
 dfwq['NO3'] = pd.to_numeric(dfwq['Nitrato (mg NO3-N/L)'], errors='coerce')
+dfwq['NO2'] = pd.to_numeric(dfwq['Ion Nitrito (mg NO2-N/L)'], errors='coerce')
+dfwq['NH4'] = pd.to_numeric(dfwq['Nitrógeno Amoniacal (amonio) (mg NH4-N/L)'], errors='coerce')
+# Check this calcs
+dfwq['NH4NU'] = dfwq['NH4'] / (1 + 10**-dfwq['PH']/10**-(0.09018+2729.92/(273.15 + dfwq['TEMP']))) 
+
 dfwq['NT_D_PT'] = dfwq['NT']/dfwq['PT']
 dfwq['NO3_D_PO4'] = dfwq['NO3']/dfwq['PO4']
 
@@ -260,6 +267,7 @@ dfwqRSJ.groupby('Estación')['PH'].plot(title='PH', legend=True, grid=True, logy
 dfwqRSJ.groupby('Estación')['CE'].plot(title='CE (uS/cm)', legend=True, grid=True, logy=True, ax=axs[3])
 dfwqRSJ.groupby('Estación')['OD'].plot(title='OD (mg/L)', legend=True, grid=True, logy=False, ax=axs[4])
 
+axs[4].set_xlim(dtmin, dtmax)
 xlims = axs[4].get_xlim()
 axs[4].hlines(y = 5.0, xmin=xlims[0], xmax=xlims[1], color = 'green', linestyle = 'dashed')
 
@@ -271,6 +279,41 @@ plt.savefig(
      os.path.join(
          temp_dir, 
         '{}_RSJ_FIELD.pdf'.format(
+            datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        )     
+    )
+)
+plt.close(fig)
+###
+
+###
+# Nitrogen
+fig, axs = plt.subplots(5, 1, sharex=True, sharey=False)
+fig.set_size_inches(config.FIG_XXLSIZE)
+fig.set_dpi(config.FIG_DPI)
+
+fflows.plot(x = 'dt', y = 'flow', title='Flow (Picada de Varela, m3/s)', legend=True, grid=True, logy=True, ax=axs[0])
+dfwqRSJ.plot(x = 'dt_y', y = 'flow', title='Flow (Picada de Varela, m3/s)', marker='o', legend=True, grid=True, logy=True, ax=axs[0])
+
+dfwqRSJ.groupby('Estación')['NH4NU'].plot(title='Amoníaco libre (mgN/L)', legend=True, grid=True, logy=True, ax=axs[1])
+dfwqRSJ.groupby('Estación')['NO3'].plot(title='Nitratos (mgN/L)', legend=True, grid=True, logy=True, ax=axs[2])
+dfwqRSJ.groupby('Estación')['NO2'].plot(title='Nitritos (mgN/L)', legend=True, grid=True, logy=True, ax=axs[3])
+dfwqRSJ.groupby('Estación')['NT'].plot(title='Nitrógeno total (mgN/L)', legend=True, grid=True, logy=True, ax=axs[4])
+
+axs[4].set_xlim(dtmin, dtmax)
+xlims = axs[4].get_xlim()
+axs[1].hlines(y = 0.02, xmin=xlims[0], xmax=xlims[1], color = 'green', linestyle = 'dashed')
+axs[2].hlines(y = 10.00, xmin=xlims[0], xmax=xlims[1], color = 'green', linestyle = 'dashed')
+
+axs[4].xaxis.set_major_locator(mdates.MonthLocator(bymonth=(2, 4, 6, 8, 10, 12)))
+axs[4].xaxis.set_minor_locator(mdates.MonthLocator())
+
+# plt.show()
+plt.tight_layout()
+plt.savefig(
+     os.path.join(
+         temp_dir, 
+        '{}_RSJ_NITROGEN.pdf'.format(
             datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         )     
     )
@@ -294,6 +337,7 @@ dfwqRSJ.groupby('Estación')['NT'].plot(title='NT', legend=True, grid=True, logy
 dfwqRSJ.groupby('Estación')['PT'].plot(title='PT', legend=True, grid=True, logy=True, ax=axs[3])
 dfwqRSJ.groupby('Estación')['NT_D_PT'].plot(title='NT/PT', legend=True, grid=True, logy=True, ax=axs[4])
 
+axs[4].set_xlim(dtmin, dtmax)
 xlims = axs[4].get_xlim()
 axs[4].hlines(y = 7.2, xmin=xlims[0], xmax=xlims[1], color = 'green', linestyle = 'dashed')
 
@@ -328,6 +372,7 @@ dfwqRSJ.groupby('Estación')['Turbidez (NTU)'].plot(title='Turbidez (NTU)', lege
 # xlims = axs[3].get_xlim()
 # axs[3].hlines(y = 7.2, xmin=xlims[0], xmax=xlims[1], color = 'green', linestyle = 'dashed')
 
+axs[3].set_xlim(dtmin, dtmax)
 axs[3].xaxis.set_major_locator(mdates.MonthLocator(bymonth=(2, 4, 6, 8, 10, 12)))
 axs[3].xaxis.set_minor_locator(mdates.MonthLocator())
 # plt.show()
@@ -356,6 +401,7 @@ dfwqRSJ.groupby('Estación')['NO3'].plot(title='NO3', legend=True, grid=True, lo
 dfwqRSJ.groupby('Estación')['PO4'].plot(title='PO4', legend=True, grid=True, logy=True, ax=axs[2])
 dfwqRSJ.groupby('Estación')['NO3_D_PO4'].plot(title='NO3/PO4', legend=True, grid=True, logy=True, ax=axs[3])
 
+axs[3].set_xlim(dtmin, dtmax)
 axs[3].xaxis.set_major_locator(mdates.MonthLocator(bymonth=(2, 4, 6, 8, 10, 12)))
 axs[3].xaxis.set_minor_locator(mdates.MonthLocator())
 # plt.show()
@@ -388,6 +434,7 @@ for pn in params:
                     x='flow', y=pn, title=st,
                     ax=axs[row, col], legend=True, grid=True, logx=True, logy=False
                 )
+                axs[row, col].set_xlim(dtmin, dtmax)
     # plt.show()
     plt.tight_layout()
     plt.savefig(
@@ -446,6 +493,7 @@ dfwqRSL.groupby('Estación')['PH'].plot(title='PH', legend=True, grid=True, logy
 dfwqRSL.groupby('Estación')['CE'].plot(title='CE (uS/cm)', legend=True, grid=True, logy=True, ax=axs[3])
 dfwqRSL.groupby('Estación')['OD'].plot(title='OD (mg/L)', legend=True, grid=True, logy=False, ax=axs[4])
 
+axs[4].set_xlim(dtmin, dtmax)
 xlims = axs[4].get_xlim()
 axs[4].hlines(y = 5.0, xmin=xlims[0], xmax=xlims[1], color = 'green', linestyle = 'dashed')
 
@@ -464,7 +512,40 @@ plt.savefig(
 plt.close(fig)
 ###
 
+###
+# Nitrogen
+fig, axs = plt.subplots(5, 1, sharex=True, sharey=False)
+fig.set_size_inches(config.FIG_XXLSIZE)
+fig.set_dpi(config.FIG_DPI)
 
+fflows.plot(x = 'dt', y = 'flow', title='Flow (Paso Pache, m3/s)', legend=True, grid=True, logy=True, ax=axs[0])
+dfwqRSL.plot(x = 'dt_y', y = 'flow', title='Flow (Paso Pache, m3/s)', marker='o', legend=True, grid=True, logy=True, ax=axs[0])
+
+dfwqRSL.groupby('Estación')['NH4NU'].plot(title='Amoníaco libre (mgN/L)', legend=True, grid=True, logy=True, ax=axs[1])
+dfwqRSL.groupby('Estación')['NO3'].plot(title='Nitratos (mgN/L)', legend=True, grid=True, logy=True, ax=axs[2])
+dfwqRSL.groupby('Estación')['NO2'].plot(title='Nitritos (mgN/L)', legend=True, grid=True, logy=True, ax=axs[3])
+dfwqRSL.groupby('Estación')['NT'].plot(title='Nitrógeno total (mgN/L)', legend=True, grid=True, logy=True, ax=axs[4])
+
+axs[4].set_xlim(dtmin, dtmax)
+xlims = axs[4].get_xlim()
+axs[1].hlines(y = 0.02, xmin=xlims[0], xmax=xlims[1], color = 'green', linestyle = 'dashed')
+axs[2].hlines(y = 10.00, xmin=xlims[0], xmax=xlims[1], color = 'green', linestyle = 'dashed')
+
+axs[4].xaxis.set_major_locator(mdates.MonthLocator(bymonth=(2, 4, 6, 8, 10, 12)))
+axs[4].xaxis.set_minor_locator(mdates.MonthLocator())
+
+# plt.show()
+plt.tight_layout()
+plt.savefig(
+     os.path.join(
+         temp_dir, 
+        '{}_RSL_NITROGEN.pdf'.format(
+            datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        )     
+    )
+)
+plt.close(fig)
+###
 
 ###
 # NT, PT, NT/PT
@@ -479,6 +560,7 @@ dfwqRSL.groupby('Estación')['NT_D_PT'].plot(title='NT/PT', legend=True, grid=Tr
 xlims = axs[3].get_xlim()
 axs[3].hlines(y = 7.2, xmin=xlims[0], xmax=xlims[1], color = 'green', linestyle = 'dashed')
 
+axs[3].set_xlim(dtmin, dtmax)
 axs[3].xaxis.set_major_locator(mdates.MonthLocator(bymonth=(2, 4, 6, 8, 10, 12)))
 axs[3].xaxis.set_minor_locator(mdates.MonthLocator())
 # plt.show()
