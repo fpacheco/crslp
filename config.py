@@ -31,6 +31,7 @@ FLOW_STAT = {
     'Paso_Pache': [14.76, 4916.00, -999.99, 'Río Santa Lucía', 'flow_Paso_Pache_R.5_Nueva.xls'],
     'Santa_Lucia': [2.27, 8374.00, -999.99, 'Río Santa Lucía', 'flow_Santa_Lucia_R-11.xls'],
     'Picada_de_Varela': [19.79, 2346.00, -999.99, 'Río San José', 'flow_Picada_de_Varela.xls'],
+    'Santa_Lucia_IC': [2.27, 8374.00, -999.99, 'Río Santa Lucía', 'wq_santa_lucia_IC.csv'],
 }
 
 CLIMATIC_STAT = {

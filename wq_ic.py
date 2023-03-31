@@ -514,59 +514,6 @@ plt.close(fig)
 ####################################################
 
 ####################################################
-# IC WD data
-dfwqic = pd.read_csv("data/wq_santa_lucia_IC.csv")
-dfwqic['dt'] = pd.to_datetime(dfwqic['Date Time'])
-dfwqic['da'] = dfwqic['dt'].dt.date
-dfwqic['TEMP'] = dfwqic['Temperature (C)']
-dfwqic['PH'] = dfwqic['pH (pH)']
-dfwqic['EH'] = dfwqic['ORP (mV)']
-dfwqic['OD'] = dfwqic['DO (mg/L)']
-dfwqic['CE'] = dfwqic['Actual Conductivity (µS/cm)']
-dfwqic['TURB'] = dfwqic['Turbidity (NTU)']
-dfwqic['H'] = dfwqic['Depth (m)']
-# dfwqic['Q'] = dfwqic['Turbidity (NTU)']
-dfwqic['Hdiff'] = 0.00
-for i in range(len(dfwqic)-1):
-    dfwqic.loc[i, "Hdiff"] = dfwqic.loc[i+1, "H"] - dfwqic.loc[i, "H"]
-
-dfwqf = list()
-dfwqf.append(dfwqic[dfwqic["Hdiff"] >= 0])
-dfwqf.append(dfwqic[dfwqic["Hdiff"] < 0])
-
-fig, axs = plt.subplots(3, 2, sharex=True, sharey=False)
-fig.set_size_inches(config.FIG_XXLSIZE)
-fig.set_dpi(config.FIG_DPI)
-
-mlabel = ["Subiendo", "Bajando"]
-cont = 1
-for dd in dfwqf:
-    dd.plot(x = 'H', y = 'PH', title='PH', kind='scatter', label=mlabel[cont], color=colors[cont], legend=True, grid=True, logy=False, ax=axs[0, 0])
-    dd.plot(x = 'H', y = 'EH', title='EH', kind='scatter', label=mlabel[cont], color=colors[cont], legend=True, grid=True, logy=False, ax=axs[0, 1])
-    dd.plot(x = 'H', y = 'CE', title='CE', kind='scatter', label=mlabel[cont], color=colors[cont], legend=True, grid=True, logy=False, ax=axs[1, 0])
-    dd.plot(x = 'H', y = 'TURB', title='TURB', kind='scatter', label=mlabel[cont], color=colors[cont], legend=True, grid=True, logy=False, ax=axs[1, 1])
-    dd.plot(x = 'H', y = 'OD', title='OD', kind='scatter', label=mlabel[cont], color=colors[cont], legend=True, grid=True, logy=False, ax=axs[2, 0])
-    cont = cont + 1
-# plt.show()
-
-plt.tight_layout()
-plt.savefig(
-     os.path.join(
-         temp_dir, 
-        '{}_SLIC_BASE.pdf'.format(
-            datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-        )     
-    )
-)
-plt.close(fig)
-
-
-
-
-
-####################################################
-
-####################################################
 # WD data
 dfwq = pd.read_csv("data/wq_santa_lucia.csv")
 dfwq['dt'] = pd.to_datetime(dfwq['Fecha'])
